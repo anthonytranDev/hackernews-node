@@ -1,17 +1,7 @@
 const { GraphQLServer } = require('graphql-yoga')
 
-const typeDefs = `
-type Query {
-  info: String!
-  feed: [Link!]!
-}
+const typeDefs = './src/schema.graphql'
 
-type Link {
-  id: ID!
-  description: String!
-  url: String!
-}
-`
 let links = [
   {
     id: 'link-0',
@@ -24,11 +14,53 @@ const resolvers = {
   Query: {
     info: () => `This is the API of a Hackernews Clone`,
     feed: () => links,
+    link: (_, args) => links.filter(link => args.id === link.id).pop(),
+  },
+  Mutation: {
+    post: (_, args) => {
+      const link = {
+        id: `link-${links.length}`,
+        description: args.description,
+        url: args.url,
+      }
+      links.push(link)
+      return link
+    },
+    updateLink: (_, args) => {
+      links = links.filter(link =>
+        args.id === link.id
+          ? {
+              id: args.id,
+              description: args.description || link.description,
+              url: args.url || link.url,
+            }
+          : link
+      )
+      return link
+    },
+    deleteLink: (_, args) => {
+      links = links.filter(link => !(link.id === args.id))
+      return {
+        action: 'DELETE',
+        message: `Deleted link id: ${args.id}`,
+      }
+    },
+    deleteAllFeeds: () => {
+      links = []
+      return {
+        action: 'DELETE',
+        message: 'Cleared all Feeds',
+      }
+    },
   },
   Link: {
     id: parent => parent.id,
     description: parent => parent.description,
     url: parent => parent.url,
+  },
+  ActionResponse: {
+    action: parent => parent.action,
+    message: parent => parent.message,
   },
 }
 
