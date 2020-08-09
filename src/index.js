@@ -30,10 +30,10 @@ const resolvers = {
       links = links.filter(link =>
         args.id === link.id
           ? {
-              id: args.id,
-              description: args.description || link.description,
-              url: args.url || link.url,
-            }
+            id: args.id,
+            description: args.description || link.description,
+            url: args.url || link.url,
+          }
           : link
       )
       return link
