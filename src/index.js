@@ -1,57 +1,52 @@
 const { GraphQLServer } = require('graphql-yoga')
+const { PrismaClient } = require('@prisma/client')
 
 const typeDefs = './src/schema.graphql'
-
-let links = [
-  {
-    id: 'link-0',
-    url: 'www.howtographql.com',
-    description: 'Fullstack tutorial for GraphQL',
-  },
-]
 
 const resolvers = {
   Query: {
     info: () => `This is the API of a Hackernews Clone`,
-    feed: () => links,
-    link: (_, args) => links.filter(link => args.id === link.id).pop(),
+    feed: async (parent, args, context) => {
+      return context.prisma.link.findMany()
+    },
+    // link: (_, args) => links.filter(link => args.id === link.id).pop(),
   },
   Mutation: {
-    post: (_, args) => {
-      const link = {
-        id: `link-${links.length}`,
-        description: args.description,
-        url: args.url,
-      }
-      links.push(link)
-      return link
+    post: (parent, args, context, info) => {
+      const newLink = context.prisma.link.create({
+        data: {
+          url: args.url,
+          description: args.description,
+        },
+      })
+      return newLink
     },
-    updateLink: (_, args) => {
-      links = links.filter(link =>
-        args.id === link.id
-          ? {
-            id: args.id,
-            description: args.description || link.description,
-            url: args.url || link.url,
-          }
-          : link
-      )
-      return link
-    },
-    deleteLink: (_, args) => {
-      links = links.filter(link => !(link.id === args.id))
-      return {
-        action: 'DELETE',
-        message: `Deleted link id: ${args.id}`,
-      }
-    },
-    deleteAllFeeds: () => {
-      links = []
-      return {
-        action: 'DELETE',
-        message: 'Cleared all Feeds',
-      }
-    },
+    // updateLink: (_, args) => {
+    //   links = links.filter(link =>
+    //     args.id === link.id
+    //       ? {
+    //         id: args.id,
+    //         description: args.description || link.description,
+    //         url: args.url || link.url,
+    //       }
+    //       : link
+    //   )
+    //   return link
+    // },
+    // deleteLink: (_, args) => {
+    //   links = links.filter(link => !(link.id === args.id))
+    //   return {
+    //     action: 'DELETE',
+    //     message: `Deleted link id: ${args.id}`,
+    //   }
+    // },
+    // deleteAllFeeds: () => {
+    //   links = []
+    //   return {
+    //     action: 'DELETE',
+    //     message: 'Cleared all Feeds',
+    //   }
+    // },
   },
   Link: {
     id: parent => parent.id,
@@ -64,9 +59,14 @@ const resolvers = {
   },
 }
 
+const prisma = new PrismaClient()
+
 const server = new GraphQLServer({
   typeDefs,
   resolvers,
+  context: {
+    prisma
+  }
 })
 
 server.start(() => console.log(`Server is running on http://localhost:4000`))
